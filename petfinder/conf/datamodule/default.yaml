@@ -1,0 +1,5 @@
+transform:
+  image_size: 320
+dataloader:
+  batch_size: 64
+  num_workers: ${...general.num_worker}

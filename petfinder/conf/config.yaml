@@ -1,0 +1,7 @@
+defaults:
+  - general: default
+  - data: default
+  - datamodule: default
+  - model: default
+  - wandb: default
+  - trainer: default
