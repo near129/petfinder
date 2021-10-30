@@ -54,11 +54,11 @@ class PetDataset(Dataset):
         return len(self.image_path)
 
     def __getitem__(self, index):
-        image = read_image(self.image_path[index])
+        image = read_image(self.image_path.iloc[index])
         if self.transform:
             image = self.transform(image)
-        if self.labels:
-            return image, self.labels[index]
+        if self.labels is not None:
+            return image, self.labels.iloc[index]
         return image
 
 
@@ -112,9 +112,10 @@ class Model(pl.LightningModule):
     def shared_step(self, batch, prefix=''):
         x, y = batch
         pred = self(x)
+        y = y.unsqueeze(1).float() / 100
         loss = self.criterion(pred, y)
         self.log(f'{prefix}loss', loss)
-        return {'loss': loss, 'pred': pred, 'label': y}
+        return {'loss': loss, 'pred': 100*pred, 'label': 100*y}
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, 'train_')
@@ -164,7 +165,7 @@ def main(cfg):
         model_checkpoint = ModelCheckpoint(
             filename='best', monitor='val_rmse', save_top_k=1, mode='min'
         )
-        logger = WandbLogger(cfg.wandb.name + f'_{i}', project=cfg.wandb.project, log_model='all', group=cfg.wandb.name+'cv')
+        logger = WandbLogger(cfg.wandb.name + f'_{i}', project=cfg.wandb.project, log_model='all', group=cfg.wandb.name+'_cv')
         trainer = pl.Trainer(
             logger=logger,
             callbacks=[lr_monitor, early_stopping, model_checkpoint],
