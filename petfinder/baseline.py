@@ -115,7 +115,7 @@ class Model(pl.LightningModule):
         y = y.unsqueeze(1).float() / 100
         loss = self.criterion(pred, y)
         self.log(f'{prefix}loss', loss)
-        return {'loss': loss, 'pred': 100*pred.detach(), 'label': 100*y.detach()}
+        return {'loss': loss, 'pred': 100*pred.sigmoid().detach(), 'label': 100*y.detach()}
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, 'train_')
