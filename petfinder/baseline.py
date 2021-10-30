@@ -9,14 +9,19 @@ import torch
 import torch.optim
 import torchvision.transforms as T
 from hydra.utils import get_original_cwd
-from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
-                                         ModelCheckpoint)
+from pytorch_lightning.callbacks import (
+    EarlyStopping,
+    LearningRateMonitor,
+    ModelCheckpoint,
+)
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from sklearn.model_selection import StratifiedKFold
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
+
+from petfinder.lr_schedulers.lr_warmup import create_warmup_lr
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
 IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
@@ -101,7 +106,8 @@ class Model(pl.LightningModule):
         self.cfg = cfg
         self.backbone = timm.create_model(**self.cfg.backbone)
         self.fc = nn.Sequential(
-            nn.Dropout(self.cfg.fc_dropout), nn.Linear(self.backbone.num_features, self.cfg.output_dim)
+            nn.Dropout(self.cfg.fc_dropout),
+            nn.Linear(self.backbone.num_features, self.cfg.output_dim),
         )
         self.criterion = hydra.utils.instantiate(cfg.loss)
 
@@ -115,7 +121,11 @@ class Model(pl.LightningModule):
         y = y.unsqueeze(1).float() / 100
         loss = self.criterion(pred, y)
         self.log(f'{prefix}loss', loss)
-        return {'loss': loss, 'pred': 100*pred.sigmoid().detach(), 'label': 100*y.detach()}
+        return {
+            'loss': loss,
+            'pred': 100 * pred.sigmoid().detach(),
+            'label': 100 * y.detach(),
+        }
 
     def training_step(self, batch, batch_idx):
         return self.shared_step(batch, 'train_')
@@ -139,10 +149,18 @@ class Model(pl.LightningModule):
         self.shared_epoch_end(outputs, 'val_')
 
     def configure_optimizers(self):
-        optimizer = hydra.utils.instantiate(self.cfg.optimizer, params=self.parameters())
+        optimizer = hydra.utils.instantiate(
+            self.cfg.optimizer, params=self.parameters()
+        )
         if 'lr_scheduler' not in self.cfg:
             return optimizer
-        lr_scheduler = hydra.utils.instantiate(self.cfg.lr_scheduler, optimizer=optimizer)
+        lr_scheduler = hydra.utils.instantiate(
+            self.cfg.lr_scheduler, optimizer=optimizer
+        )
+        if 'lr_warmup' in self.cfg:
+            lr_scheduler = create_warmup_lr(
+                optimizer, lr_scheduler, **self.cfg.lr_warmup
+            )
         return [optimizer], [lr_scheduler]
 
 
@@ -154,7 +172,9 @@ def main(cfg):
     df['path'] = df['Id'].map(
         lambda i: str(cwd / Path(cfg.data.data_path).parent / f'train/{i}.jpg')
     )
-    skf = StratifiedKFold(cfg.data.n_splits, shuffle=True, random_state=cfg.general.seed)
+    skf = StratifiedKFold(
+        cfg.data.n_splits, shuffle=True, random_state=cfg.general.seed
+    )
     for i, (train_idx, val_idx) in enumerate(skf.split(df.index, df['Pawpularity'])):
         train_df = df.loc[train_idx].reset_index(drop=True)
         val_df = df.loc[val_idx].reset_index(drop=True)
@@ -165,7 +185,12 @@ def main(cfg):
         model_checkpoint = ModelCheckpoint(
             filename='best', monitor='val_rmse', save_top_k=1, mode='min'
         )
-        logger = WandbLogger(cfg.wandb.name + f'_{i}', project=cfg.wandb.project, log_model='all', group=cfg.wandb.name+'_cv')
+        logger = WandbLogger(
+            cfg.wandb.name + f'_{i}',
+            project=cfg.wandb.project,
+            log_model='all',
+            group=cfg.wandb.name + '_cv',
+        )
         trainer = pl.Trainer(
             logger=logger,
             callbacks=[lr_monitor, early_stopping, model_checkpoint],

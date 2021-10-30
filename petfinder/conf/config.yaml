@@ -1,7 +1,38 @@
-defaults:
-  - general: default
-  - data: default
-  - datamodule: default
-  - model: default
-  - wandb: default
-  - trainer: default
+general:
+  seed: 42
+  num_workers: 4
+data:
+  data_path: ${hydra:runtime.cwd}/data/train.csv
+  n_splits: 5
+datamodule:
+  transform:
+    image_size: 320
+  dataloader:
+    batch_size: 64
+    num_workers: ${...general.num_workers}
+model:
+  backbone:
+    model_name: efficientnetv2_rw_m
+    pretrained: True
+    num_classes: 0
+    in_chans: 3
+  fc_dropout: 0.5
+  output_dim: 1
+  loss:
+    _target_: torch.nn.BCEWithLogitsLoss
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 1e-4
+  lr_scheduler:
+    _target_: torch.optim.lr_scheduler.StepLR
+    step_size: 5
+    gamma: 0.1
+  lr_warmup:
+    lr_warmup_decay: 0.1
+    lr_warmup_epochs: 5
+trainer:
+  gpus: 1
+  max_epochs: 50
+wandb:
+  name: default
+  project: petfinder
