@@ -160,7 +160,7 @@ def main(cfg):
         val_df = df.loc[val_idx].reset_index(drop=True)
         datamodule = DataModule(train_df, val_df, cfg.datamodule)
         model = Model(cfg.model)
-        early_stopping = EarlyStopping(monitor='val_rmse')
+        early_stopping = EarlyStopping(monitor='val_loss')
         lr_monitor = LearningRateMonitor()
         model_checkpoint = ModelCheckpoint(
             filename='best', monitor='val_rmse', save_top_k=1, mode='min'
@@ -174,6 +174,8 @@ def main(cfg):
         trainer.fit(model, datamodule=datamodule)
         hydra_artifact = wandb.Artifact('hydra', 'setting file')
         hydra_artifact.add_dir(Path.cwd())
+        logger.experiment.log_artifact(hydra_artifact)
+        wandb.finish()
 
 
 if __name__ == '__main__':
