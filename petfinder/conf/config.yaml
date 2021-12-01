@@ -12,6 +12,7 @@ datamodule:
     num_workers: ${...general.num_workers}
 model:
   backbone:
+    # model_name: swin_large_patch4_window7_224
     model_name: swin_tiny_patch4_window7_224
     pretrained: True
     num_classes: 0
@@ -31,7 +32,7 @@ model:
     lr_warmup_decay: 0.1
     lr_warmup_epochs: 5
 trainer:
-  gpus: 0
+  gpus: 1
   max_epochs: 50
 wandb:
   name: swin_test
