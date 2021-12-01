@@ -6,7 +6,7 @@ data:
   n_splits: 5
 datamodule:
   transform:
-    image_size: 320
+    image_size: 224
   dataloader:
     batch_size: 64
     num_workers: ${...general.num_workers}
