@@ -8,7 +8,7 @@ datamodule:
   transform:
     image_size: 224
   dataloader:
-    batch_size: 64
+    batch_size: 4
     num_workers: ${...general.num_workers}
 model:
   backbone:
@@ -31,9 +31,10 @@ model:
   lr_warmup:
     lr_warmup_decay: 0.1
     lr_warmup_epochs: 5
+  mixup: true
 trainer:
-  gpus: 1
+  gpus: 0
   max_epochs: 50
 wandb:
-  name: swin_lr_1e-5
+  name: mixup_test
   project: petfinder

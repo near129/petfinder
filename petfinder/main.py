@@ -1,13 +1,14 @@
 from pathlib import Path
 
-import wandb
 import hydra
+import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import timm
 import torch
 import torch.optim
 import torchvision.transforms as T
+import wandb
 from hydra.utils import get_original_cwd
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -21,10 +22,23 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
 
-from petfinder.lr_schedulers.lr_warmup import create_warmup_lr
+# from petfinder.lr_schedulers.lr_warmup import create_warmup_lr
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
 IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
+
+
+def create_warmup_lr(optimizer, lr_scheduler, lr_warmup_decay=0.1, lr_warmup_epochs=5):
+    warmup_lr_scheduler = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=lr_warmup_decay, total_iters=lr_warmup_epochs
+    )
+    lr_scheduler = torch.optim.lr_scheduler.SequentialLR(
+        optimizer,
+        schedulers=[warmup_lr_scheduler, lr_scheduler],
+        milestones=[lr_warmup_epochs],
+    )
+    lr_scheduler.optimizer = optimizer  # pytorch-lightningで必要なため
+    return lr_scheduler
 
 
 def create_transform(image_size=224, training=True):
@@ -99,6 +113,17 @@ class DataModule(pl.LightningDataModule):
         )
 
 
+def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
+    assert alpha > 0, "alpha should be larger than 0"
+    assert x.size(0) > 1, "Mixup cannot be applied to a single instance."
+
+    lam = np.random.beta(alpha, alpha)
+    rand_index = torch.randperm(x.size()[0])
+    mixed_x = lam * x + (1 - lam) * x[rand_index, :]
+    target_a, target_b = y, y[rand_index]
+    return mixed_x, target_a, target_b, lam
+
+
 class Model(pl.LightningModule):
     def __init__(self, cfg):
         super().__init__()
@@ -115,11 +140,18 @@ class Model(pl.LightningModule):
         output = self.backbone(x)
         return self.fc(output)
 
-    def shared_step(self, batch, prefix=''):
+    def shared_step(self, batch, prefix='', _mixup=False):
         x, y = batch
-        pred = self(x)
         y = y.unsqueeze(1).float() / 100
-        loss = self.criterion(pred, y)
+        if _mixup:
+            x, target_a, target_b, lam = mixup(x, y, 0.5)
+            pred = self(x)
+            loss = self.criterion(pred, target_a) * lam + (1 - lam) * self.criterion(
+                pred, target_b
+            )
+        else:
+            pred = self(x)
+            loss = self.criterion(pred, y)
         self.log(f'{prefix}loss', loss)
         return {
             'loss': loss,
