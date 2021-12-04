@@ -1,6 +1,6 @@
 general:
   seed: 42
-  num_workers: 4
+  num_workers: 2
 data:
   data_path: ${hydra:runtime.cwd}/data/train.csv
   n_splits: 5
@@ -8,7 +8,7 @@ datamodule:
   transform:
     image_size: 224
   dataloader:
-    batch_size: 4
+    batch_size: 64
     num_workers: ${...general.num_workers}
 model:
   backbone:
@@ -36,5 +36,5 @@ trainer:
   gpus: 0
   max_epochs: 50
 wandb:
-  name: mixup_test
+  name: mixup
   project: petfinder
