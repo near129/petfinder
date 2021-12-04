@@ -33,7 +33,7 @@ model:
     lr_warmup_epochs: 5
   mixup: true
 trainer:
-  gpus: 0
+  gpus: 1
   max_epochs: 50
 wandb:
   name: mixup
