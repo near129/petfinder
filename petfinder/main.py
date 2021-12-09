@@ -22,24 +22,10 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
 
-# from petfinder.lr_schedulers.lr_warmup import create_warmup_lr
+from petfinder.utils.lr_warmup import create_warmup_lr
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
 IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
-
-
-def create_warmup_lr(optimizer, lr_scheduler, lr_warmup_decay=0.1, lr_warmup_epochs=5):
-    warmup_lr_scheduler = torch.optim.lr_scheduler.LinearLR(
-        optimizer, start_factor=lr_warmup_decay, total_iters=lr_warmup_epochs
-    )
-    lr_scheduler = torch.optim.lr_scheduler.SequentialLR(
-        optimizer,
-        schedulers=[warmup_lr_scheduler, lr_scheduler],
-        milestones=[lr_warmup_epochs],
-    )
-    lr_scheduler.optimizer = optimizer  # pytorch-lightningで必要なため
-    return lr_scheduler
-
 
 def create_transform(image_size=224, training=True):
     tf = [T.Resize((image_size,) * 2)]
@@ -202,7 +188,7 @@ def main(cfg):
     cwd = Path(get_original_cwd())
     df = pd.read_csv(cfg.data.data_path)
     df['path'] = df['Id'].map(
-        lambda i: str(cwd / Path(cfg.data.data_path).parent / f'train/{i}.jpg')
+        lambda i: str(cwd / Path(cfg.data.data_path).parent / f'{cfg.data.data_type}/{i}.jpg')
     )
     skf = StratifiedKFold(
         cfg.data.n_splits, shuffle=True, random_state=cfg.general.seed

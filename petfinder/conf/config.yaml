@@ -4,6 +4,7 @@ general:
 data:
   data_path: ${hydra:runtime.cwd}/data/train.csv
   n_splits: 5
+  data_type: 'crop'
 datamodule:
   transform:
     image_size: 224
@@ -25,12 +26,15 @@ model:
     _target_: torch.optim.AdamW
     lr: 1e-5
   lr_scheduler:
-    _target_: torch.optim.lr_scheduler.StepLR
-    step_size: 5
-    gamma: 0.1
-  lr_warmup:
-    lr_warmup_decay: 0.1
-    lr_warmup_epochs: 5
+    # _target_: torch.optim.lr_scheduler.StepLR
+    # step_size: 5
+    # gamma: 0.1
+    _target_: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+    T_0: 20
+    eta_min: 1e-4
+  # lr_warmup:
+  #   lr_warmup_decay: 0.1
+  #   lr_warmup_epochs: 5
   mixup: true
 trainer:
   gpus: 1
