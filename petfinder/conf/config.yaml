@@ -23,7 +23,7 @@ model:
     _target_: torch.nn.BCEWithLogitsLoss
   optimizer:
     _target_: torch.optim.AdamW
-    lr: 1e-5
+    lr: 1e-6
   lr_scheduler:
     # _target_: torch.optim.lr_scheduler.StepLR
     # step_size: 5
