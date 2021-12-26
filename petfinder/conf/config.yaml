@@ -9,7 +9,7 @@ datamodule:
   transform:
     image_size: 224
   dataloader:
-    batch_size: 64
+    batch_size: 32
     num_workers: ${...general.num_workers}
 model:
   backbone:
