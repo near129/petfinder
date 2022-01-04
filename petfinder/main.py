@@ -27,6 +27,7 @@ from petfinder.utils.lr_warmup import create_warmup_lr
 IMAGENET_MEAN = [0.485, 0.456, 0.406]  # RGB
 IMAGENET_STD = [0.229, 0.224, 0.225]  # RGB
 
+
 def create_transform(image_size=224, training=True):
     tf = [T.Resize((image_size,) * 2)]
     if training:
@@ -188,14 +189,20 @@ def main(cfg):
     cwd = Path(get_original_cwd())
     df = pd.read_csv(cfg.data.data_path)
     df['path'] = df['Id'].map(
-        lambda i: str(cwd / Path(cfg.data.data_path).parent / f'{cfg.data.data_type}/{i}.jpg')
+        lambda i: str(
+            cwd / Path(cfg.data.data_path).parent / f'{cfg.data.data_type}/{i}.jpg'
+        )
     )
     skf = StratifiedKFold(
         cfg.data.n_splits, shuffle=True, random_state=cfg.general.seed
     )
     for i, (train_idx, val_idx) in enumerate(skf.split(df.index, df['Pawpularity'])):
+        if i < cfg.general.get('start_cv', 0):
+            continue
+
         train_df = df.loc[train_idx].reset_index(drop=True)
         val_df = df.loc[val_idx].reset_index(drop=True)
+
         datamodule = DataModule(train_df, val_df, cfg.datamodule)
         model = Model(cfg.model)
         early_stopping = EarlyStopping(monitor='val_loss')
@@ -206,7 +213,7 @@ def main(cfg):
         logger = WandbLogger(
             cfg.wandb.name + f'_{i}',
             project=cfg.wandb.project,
-            log_model='all',
+            log_model=True,
             group=cfg.wandb.name + '_cv',
         )
         trainer = pl.Trainer(
@@ -214,10 +221,12 @@ def main(cfg):
             callbacks=[lr_monitor, early_stopping, model_checkpoint],
             **cfg.trainer,
         )
-        trainer.fit(model, datamodule=datamodule)
-        hydra_artifact = wandb.Artifact('hydra', 'setting file')
-        hydra_artifact.add_dir(Path.cwd())
+
+        hydra_artifact = wandb.Artifact('hydra', 'hydra')
+        hydra_artifact.add_dir(Path.cwd() / '.hydra')
         logger.experiment.log_artifact(hydra_artifact)
+
+        trainer.fit(model, datamodule=datamodule)
         wandb.finish()
 
 
