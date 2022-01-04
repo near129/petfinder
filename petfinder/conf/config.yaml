@@ -1,6 +1,7 @@
 general:
   seed: 42
   num_workers: 2
+  start_cv: 4
 data:
   data_path: ${hydra:runtime.cwd}/data/train.csv
   n_splits: 5
