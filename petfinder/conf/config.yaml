@@ -14,7 +14,7 @@ datamodule:
     num_workers: ${...general.num_workers}
 model:
   backbone:
-    model_name: swin_tiny_patch4_window7_224
+    model_name: swin_large_patch4_window7_224
     pretrained: True
     num_classes: 0
     in_chans: 3
@@ -34,5 +34,5 @@ trainer:
   gpus: 1
   max_epochs: 50
 wandb:
-  name: croped_data_swin_tiny_lr_6
+  name: swin_large
   project: petfinder
