@@ -5,7 +5,7 @@ general:
 data:
   data_path: ${hydra:runtime.cwd}/data/train.csv
   n_splits: 5
-  data_type: 'crop'
+  data_type: 'train'
 datamodule:
   transform:
     image_size: 224
@@ -34,5 +34,5 @@ trainer:
   gpus: 1
   max_epochs: 50
 wandb:
-  name: swin_large
+  name: swin_large_clean_crop
   project: petfinder
