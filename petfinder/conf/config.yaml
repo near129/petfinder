@@ -5,7 +5,7 @@ general:
 data:
   data_path: ${hydra:runtime.cwd}/data/train.csv
   n_splits: 5
-  data_type: 'train'
+  data_type: 'crop'
 datamodule:
   transform:
     image_size: 224
