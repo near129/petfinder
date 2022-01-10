@@ -1,4 +1,5 @@
 from pathlib import Path
+import gc
 
 import hydra
 import numpy as np
@@ -228,7 +229,8 @@ def main(cfg):
 
         trainer.fit(model, datamodule=datamodule)
         wandb.finish()
-
+        del model
+        gc.collect()
 
 if __name__ == '__main__':
     main()
