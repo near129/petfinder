@@ -4,7 +4,7 @@ general:
   start_cv: 0
 data:
   data_path: ${hydra:runtime.cwd}/data/train.csv
-  n_splits: 5
+  n_splits: 10
   data_type: 'train'
 datamodule:
   transform:
@@ -34,5 +34,5 @@ trainer:
   gpus: 1
   max_epochs: 50
 wandb:
-  name: swin_large_clean
+  name: swin_large_10kf
   project: petfinder
