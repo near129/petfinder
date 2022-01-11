@@ -229,7 +229,7 @@ def main(cfg):
 
         trainer.fit(model, datamodule=datamodule)
         wandb.finish()
-        del model
+        del trainer, model
         gc.collect()
 
 if __name__ == '__main__':
